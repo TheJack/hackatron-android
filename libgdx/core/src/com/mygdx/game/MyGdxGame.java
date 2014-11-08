@@ -1,5 +1,8 @@
 package com.mygdx.game;
 
+import java.util.ArrayList;
+import java.util.Random;
+
 import org.w3c.dom.css.Rect;
 
 
@@ -34,18 +37,24 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 public class MyGdxGame implements ApplicationListener, InputProcessor  {
     private PerspectiveCamera camera;
     private ModelBatch modelBatch;
-    private Model model;
-    private ModelInstance modelInstance;
+    private Model voltron;
+    private ModelInstance voltronInstance;
     
     private Model backDrop;
     private ModelInstance backDropInstance;
     
+    private Model asteroid;
+    private ArrayList<ModelInstance> asteroidInstances;
+    
     private Environment environment;
     //private AnimationController controller;
     
+    private Random random;
+    
     @Override
-    public void create() {    
-    	 Gdx.input.setInputProcessor(this);
+    public void create() {   
+    	random = new Random();
+    	Gdx.input.setInputProcessor(this);
     	 
         camera = new PerspectiveCamera( 75,
 						                Gdx.graphics.getWidth(),
@@ -56,85 +65,53 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
         camera.lookAt(0f,0f,0f);
         
         camera.near = 0.1f;
-        camera.far = 300.0f;
+        camera.far = 1000.0f;
+        
         ////////////////////////////////////////////////
-        ModelBuilder modelBuilder = new ModelBuilder();
-        // We pass in a ColorAttribute, making our cubes diffuse ( aka, color ) red.
-        // And let openGL know we are interested in the Position and Normal channels
-       /* float dist = 20;
-        backDrop = modelBuilder.createRect(	-5f, -5f, dist, // 00
-			        						5f, -5f, dist, // 10
-			        						5f, 5f, dist, // 11
-			        						-5f, 5f, dist, // 01
-			        						0f, 0f, 1f, // normal
-			        						new Material(ColorAttribute.createDiffuse(Color.BLUE)), 
-			        						Usage.Position | Usage.Normal);
-        backDropInstance = new ModelInstance(backDrop);*/
-        
-        backDrop = modelBuilder.createBox(	160f, 160f, 1f, 
-									        new Material(ColorAttribute.createDiffuse(Color.BLUE)),
-									        Usage.Position | Usage.Normal );
-        backDropInstance = new ModelInstance(backDrop);
-        backDropInstance.transform.translate(0, 0, -150);
-        
-        //Texture texTile = assetManager.get("textures/gdx.jpg", Texture.class);
-        //Material mat = new Material(TextureAttribute.createDiffuse(texTile));
-        
-        //////////////////////////////////////////////////////////////////////////////////////////////////////
-        modelBatch = new ModelBatch();
-        
-        UBJsonReader jsonReader = new UBJsonReader();
-        G3dModelLoader modelLoader = new G3dModelLoader(jsonReader);
-        // Note, the model (g3db file ) and textures need to be added to the assets folder of the Android proj
-        model = modelLoader.loadModel(Gdx.files.getFileHandle("robot2.g3db", FileType.Internal));
-        modelInstance = new ModelInstance(model);
-        
-        ////////////////////////////
-        /*ObjLoader loader = new ObjLoader();
-        model = loader.loadModel(Gdx.files.internal("robot.obj"));
-        modelInstance = new ModelInstance(model);*/
-        /////////////////////////////
-        
-        //fbx-conv is supposed to perform this rotation for you... it doesnt seem to
-        //modelInstance.transform.rotate(1, 0, 0, -90);
-        //move the model down a bit on the screen ( in a z-up world, down is -z ).
-        modelInstance.transform.translate(0, 100, -2);
-
-        // Finally we want some light, or we wont see our color.  The environment gets passed in during
+        // We want some light, or we wont see our color.  The environment gets passed in during
         // the rendering process.  Create one, then create an Ambient ( non-positioned, non-directional ) light.
         environment = new Environment();
         environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.8f, 0.8f, 0.8f, 1.0f));
+       
+        ////////////////////////////////////////////////
+        ModelBuilder modelBuilder = new ModelBuilder();
+        modelBatch = new ModelBatch();
         
-        /*
-        // You use an AnimationController to um, control animations.  Each control is tied to the model instance
-        controller = new AnimationController(modelInstance);  
-        // Pick the current animation by name
-        controller.setAnimation("Bend",1, new AnimationListener(){
-
-            @Override
-            public void onEnd(AnimationDesc animation) {
-                // this will be called when the current animation is done. 
-                // queue up another animation called "balloon". 
-                // Passing a negative to loop count loops forever.  1f for speed is normal speed.
-                controller.queue("balloon",-1,1f,null,0f);
-            }
-
-            @Override
-            public void onLoop(AnimationDesc animation) {
-                // TODO Auto-generated method stub
-                
-            }
-            
-        });*/
+        ////////////////////////////////////////////////
+        Texture texTile = new Texture(Gdx.files.getFileHandle("background.jpg", FileType.Internal));
+        backDrop = modelBuilder.createBox(	1300f, 800f, 1f, 
+        									new Material(TextureAttribute.createDiffuse(texTile)),
+									        Usage.Position | Usage.Normal | Usage.TextureCoordinates );
+        backDropInstance = new ModelInstance(backDrop);
+        backDropInstance.transform.translate(0, 0, -450);
+        
+        //////////////////////////////////////////////////////////////////////////////////////////////////////
+        UBJsonReader jsonReader = new UBJsonReader();
+        G3dModelLoader modelLoader = new G3dModelLoader(jsonReader);
+        
+        // Note, the model (g3db file ) and textures need to be added to the assets folder of the Android proj
+        voltron = modelLoader.loadModel(Gdx.files.getFileHandle("robot2.g3db", FileType.Internal));
+        voltronInstance = new ModelInstance(voltron);
+        voltronInstance.transform.scale(0.5f, 0.5f, 0.5f);
+        voltronInstance.transform.translate(0, -20, -320);
+        
+        asteroid = modelLoader.loadModel(Gdx.files.getFileHandle("asteroid.g3db", FileType.Internal));
+        
+        asteroidInstances = new ArrayList<ModelInstance>();
+        int asteroidsCount = 5;
+        for(int i = 0; i < asteroidsCount; ++i){
+        	asteroidInstances.add(new ModelInstance(asteroid));
+        	
+        	asteroidInstances.get(i).transform.translate(i * 60 - 100, 0, -200);
+        }
     }
     
-    
-
     @Override
     public void dispose() {
         modelBatch.dispose();
-        model.dispose();
+        voltron.dispose();
         backDrop.dispose();
+        asteroid.dispose();
     }
 
     @Override
@@ -153,9 +130,16 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
         // You need to call update on the animation controller so it will advance the animation.  Pass in frame delta
         //controller.update(Gdx.graphics.getDeltaTime());
         // Like spriteBatch, just with models!  pass in the box Instance and the environment
+        
         modelBatch.begin(camera);
         modelBatch.render(backDropInstance, environment);
-        modelBatch.render(modelInstance, environment);
+        
+        for(ModelInstance instance : asteroidInstances){
+        	instance.transform.rotate(random.nextFloat(), random.nextFloat(), random.nextFloat(), 1);
+        	modelBatch.render(instance, environment);
+        }
+        
+        modelBatch.render(voltronInstance, environment);
         modelBatch.end();
     }
 
@@ -176,44 +160,36 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
         float moveAmount = 10.0f;
         
         if(keycode == Keys.UP)
-        	modelInstance.transform.translate(0, -moveAmount, -2);
+        	voltronInstance.transform.translate(0, -moveAmount, -2);
         if(keycode == Keys.DOWN)
-        	modelInstance.transform.translate(0, moveAmount, -2);
+        	voltronInstance.transform.translate(0, moveAmount, -2);
         if(keycode == Keys.LEFT)
-        	modelInstance.transform.translate(0, 0, -moveAmount);
+        	voltronInstance.transform.translate(0, 0, -moveAmount);
         if(keycode == Keys.RIGHT)
-        	modelInstance.transform.translate(0, 0, moveAmount);
+        	voltronInstance.transform.translate(0, 0, moveAmount);
         
         if(keycode == Keys.A)
-        	modelInstance.transform.rotate(0, 1, 0, -moveAmount);
+        	voltronInstance.transform.rotate(0, 1, 0, -moveAmount);
         if(keycode == Keys.D)
-        	modelInstance.transform.rotate(0, 1, 0, moveAmount);
+        	voltronInstance.transform.rotate(0, 1, 0, moveAmount);
         
         return true;
     }
 
 	@Override
 	public boolean keyUp(int keycode) {
-		// TODO Auto-generated method stub
 		return false;
 	}
-
-
 
 	@Override
 	public boolean keyTyped(char character) {
-		// TODO Auto-generated method stub
 		return false;
 	}
-
-
 
 	@Override
 	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
 		return false;
 	}
-
-
 
 	@Override
 	public boolean touchUp(int screenX, int screenY, int pointer, int button) {
@@ -221,7 +197,6 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
 		oldY = -1;
 		return false;
 	}
-
 
 	int oldX;
 	int oldY;
@@ -243,23 +218,17 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
 		if(deltaX > 20 || deltaY > 20)
 			return true;
 		
-		modelInstance.transform.translate(0, deltaX, deltaY);
+		voltronInstance.transform.translate(0, deltaX, deltaY);
         return true;
 	}
 
-
-
 	@Override
 	public boolean mouseMoved(int screenX, int screenY) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-
-
 	@Override
 	public boolean scrolled(int amount) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 }
