@@ -16,11 +16,10 @@
 -->
 
 <resources>
-
     <string name="signing_in">Signing in with Google</string>
     <string name="signing_out">Signing out</string>
     <string name="app_name">Hackatron</string>
-    <string name="game_title">Button Clicker 2000!</string>
+    <string name="game_title">Hackatron!</string>
     <string name="game_blurb">A sample game that tests your ability to click a button. Can you click faster than your friends? Only one way to find out! To play this game with friends, you must sign in with Google.</string>
     <string name="single_player">Single Player</string>
     <string name="single_player_explanation">Get some practice!</string>
@@ -43,8 +42,4 @@
     <string name="is_inviting_you">is challenging you to a game!</string>
     <string name="signin_failure">Unable to sign in. Check your internet connection and try again later.</string>
     <string name="signin_other_error">There was an issue with sign in. Please try again later.</string>
-    <string name="title_activity_multiplayer_game">MultiplayerGameActivity</string>
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
-
 </resources>

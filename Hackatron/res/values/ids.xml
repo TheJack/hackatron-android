@@ -16,5 +16,5 @@
 -->
 
 <resources>
-    <style name="AppTheme" parent="android:Theme.Holo.Light.NoActionBar" />
+    <string name="app_id">535727182240</string>
 </resources>
