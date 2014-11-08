@@ -54,6 +54,7 @@ import com.google.android.gms.games.multiplayer.realtime.RoomStatusUpdateListene
 import com.google.android.gms.games.multiplayer.realtime.RoomUpdateListener;
 import com.google.android.gms.plus.Plus;
 import com.google.example.games.basegameutils.BaseGameUtils;
+import com.hackfmi.thejack.hackatron.Game.BodyPart;
 
 /**
  * Button Clicker 2000. A minimalistic game showing the multiplayer features of
@@ -127,6 +128,9 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
   // Message buffer for sending messages
   byte[] mMsgBuf = new byte[2];
 
+  // Game
+  private Game currentGame;
+
   // Sensors
   private SensorManager mSensorManager;
   private Sensor mSensor;
@@ -147,7 +151,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     }
 
     mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-    mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+    mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
   }
 
   @Override
@@ -208,11 +212,26 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
       // user wants to play against a random opponent right now
       startQuickGame();
       break;
-    case R.id.button_click_me:
-      // (gameplay) user clicked the "click me" button
-      // scoreOnePoint();
+    case R.id.button_head:
+      useBodyPart(Game.BodyPart.HEAD);
+      break;
+    case R.id.button_left_hand:
+      useBodyPart(Game.BodyPart.LEFT_HAND);
+      break;
+    case R.id.button_right_hand:
+      useBodyPart(Game.BodyPart.RIGHT_HAND);
+      break;
+    case R.id.button_left_foot:
+      useBodyPart(Game.BodyPart.LEFT_FOOT);
+      break;
+    case R.id.button_right_foot:
+      useBodyPart(Game.BodyPart.RIGHT_FOOT);
       break;
     }
+  }
+
+  private void useBodyPart(BodyPart bodyPart) {
+    currentGame.use(bodyPart);
   }
 
   void startQuickGame() {
@@ -672,6 +691,15 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     mScore = 0;
     mParticipantScore.clear();
     mFinishedParticipants.clear();
+    currentGame = new Game(participantsToIds(mParticipants), mMyId);
+  }
+
+  private List<String> participantsToIds(List<Participant> participnats) {
+    List<String> result = new ArrayList<String>();
+    for (Participant participant : mParticipants) {
+      result.add(participant.getParticipantId());
+    }
+    return result;
   }
 
   // Start the gameplay phase of the game.
@@ -681,7 +709,11 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     broadcastScore(false);
     switchToScreen(R.id.screen_game);
 
-    findViewById(R.id.button_click_me).setVisibility(View.VISIBLE);
+    findViewById(R.id.button_head).setVisibility(View.VISIBLE);
+    findViewById(R.id.button_left_hand).setVisibility(View.VISIBLE);
+    findViewById(R.id.button_right_hand).setVisibility(View.VISIBLE);
+    findViewById(R.id.button_left_foot).setVisibility(View.VISIBLE);
+    findViewById(R.id.button_right_foot).setVisibility(View.VISIBLE);
 
     // run the gameTick() method every second to update the game.
     final Handler h = new Handler();
@@ -709,7 +741,12 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     if (mSecondsLeft <= 0) {
       // finish game
-      findViewById(R.id.button_click_me).setVisibility(View.GONE);
+      findViewById(R.id.button_head).setEnabled(false);
+      findViewById(R.id.button_left_hand).setEnabled(false);
+      findViewById(R.id.button_right_hand).setEnabled(false);
+      findViewById(R.id.button_left_foot).setEnabled(false);
+      findViewById(R.id.button_right_foot).setEnabled(false);
+
       broadcastScore(true);
     }
   }
@@ -830,8 +867,9 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
   // event handlers.
   final static int[] CLICKABLES = { R.id.button_accept_popup_invitation,
       R.id.button_invite_players, R.id.button_quick_game, R.id.button_see_invitations,
-      R.id.button_sign_in, R.id.button_sign_out, R.id.button_click_me, R.id.button_single_player,
-      R.id.button_single_player_2 };
+      R.id.button_sign_in, R.id.button_sign_out, R.id.button_head, R.id.button_left_hand,
+      R.id.button_right_hand, R.id.button_left_foot, R.id.button_right_foot,
+      R.id.button_single_player, R.id.button_single_player_2 };
 
   // This array lists all the individual screens our game has.
   final static int[] SCREENS = { R.id.screen_game, R.id.screen_main, R.id.screen_sign_in,
@@ -875,7 +913,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
   // formats a score as a three-digit number
   String formatScore(float x, float y, float z) {
-    return String.format("X:%f Y:%f Z:%f", x, y, z);
+    return String.format("X:%f Y:%f Z:%f", x * 180 / Math.PI, y * 180 / Math.PI, z * 180 / Math.PI);
   }
 
   // formats a score as a three-digit number
@@ -947,46 +985,53 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
   public void onSensorChanged(SensorEvent event) {
     // This timestep's delta rotation to be multiplied by the current rotation
     // after computing it from the gyro sample data.
-    if (timestamp != 0) {
-      final float dT = (event.timestamp - timestamp) * NS2S;
-      // Axis of the rotation sample, not normalized yet.
-      float axisX = event.values[0];
-      float axisY = event.values[1];
-      float axisZ = event.values[2];
-
-      // Calculate the angular speed of the sample
-      float omegaMagnitude = (float) Math.sqrt(axisX * axisX + axisY * axisY + axisZ * axisZ);
-
-      // Normalize the rotation vector if it's big enough to get the axis
-      // (that is, EPSILON should represent your maximum allowable margin of
-      // error)
-      if (omegaMagnitude > EPSILON) {
-        axisX /= omegaMagnitude;
-        axisY /= omegaMagnitude;
-        axisZ /= omegaMagnitude;
-      }
-
-      // Integrate around this axis with the angular speed by the timestep
-      // in order to get a delta rotation from this sample over the timestep
-      // We will convert this axis-angle representation of the delta rotation
-      // into a quaternion before turning it into the rotation matrix.
-      float thetaOverTwo = omegaMagnitude * dT / 2.0f;
-      float sinThetaOverTwo = (float) Math.sin(thetaOverTwo);
-      float cosThetaOverTwo = (float) Math.cos(thetaOverTwo);
-      deltaRotationVector[0] = sinThetaOverTwo * axisX;
-      deltaRotationVector[1] = sinThetaOverTwo * axisY;
-      deltaRotationVector[2] = sinThetaOverTwo * axisZ;
-      deltaRotationVector[3] = cosThetaOverTwo;
-
-      moveInDirection(axisX, axisY, axisZ);
-    }
-    timestamp = event.timestamp;
-    float[] deltaRotationMatrix = new float[9];
-    SensorManager.getRotationMatrixFromVector(deltaRotationMatrix, deltaRotationVector);
-    // User code should concatenate the delta rotation we computed with the
-    // current rotation
-    // in order to get the updated rotation.
-    // rotationCurrent = rotationCurrent * deltaRotationMatrix;
+    // if (timestamp != 0) {
+    // final float dT = (event.timestamp - timestamp) * NS2S;
+    // // Axis of the rotation sample, not normalized yet.
+    // float axisX = event.values[0];
+    // float axisY = event.values[1];
+    // float axisZ = event.values[2];
+    //
+    // // Calculate the angular speed of the sample
+    // float omegaMagnitude = (float) Math.sqrt(axisX * axisX + axisY * axisY +
+    // axisZ * axisZ);
+    //
+    // moveInDirection(axisX, axisY, axisZ);
+    // // Normalize the rotation vector if it's big enough to get the axis
+    // // (that is, EPSILON should represent your maximum allowable margin of
+    // // error)
+    // if (omegaMagnitude > EPSILON) {
+    // axisX /= omegaMagnitude;
+    // axisY /= omegaMagnitude;
+    // axisZ /= omegaMagnitude;
+    // }
+    //
+    // // Integrate around this axis with the angular speed by the timestep
+    // // in order to get a delta rotation from this sample over the timestep
+    // // We will convert this axis-angle representation of the delta rotation
+    // // into a quaternion before turning it into the rotation matrix.
+    // float thetaOverTwo = omegaMagnitude * dT / 2.0f;
+    // float sinThetaOverTwo = (float) Math.sin(thetaOverTwo);
+    // float cosThetaOverTwo = (float) Math.cos(thetaOverTwo);
+    // deltaRotationVector[0] = sinThetaOverTwo * axisX;
+    // deltaRotationVector[1] = sinThetaOverTwo * axisY;
+    // deltaRotationVector[2] = sinThetaOverTwo * axisZ;
+    // deltaRotationVector[3] = cosThetaOverTwo;
+    //
+    // }
+    // timestamp = event.timestamp;
+    // float[] deltaRotationMatrix = new float[9];
+    // SensorManager.getRotationMatrixFromVector(deltaRotationMatrix,
+    // deltaRotationVector);
+    // // User code should concatenate the delta rotation we computed with the
+    // // current rotation
+    // // in order to get the updated rotation.
+    // // rotationCurrent = rotationCurrent * deltaRotationMatrix;
+    float x = event.values[0];
+    float y = event.values[1];
+    float z = event.values[2];
+    float t = event.values[3];
+    moveInDirection(x, y, z);
   }
 
   @Override
