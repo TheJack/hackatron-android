@@ -40,6 +40,8 @@ import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
 import com.badlogic.gdx.graphics.g3d.utils.AnimationController.AnimationDesc;
 import com.badlogic.gdx.graphics.g3d.utils.AnimationController.AnimationListener;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.Vector3;
 
 
@@ -69,7 +71,7 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
     private FloatArray 		 		 asteroidFallSpeeds;
     
     private Environment environment;
-    //private AnimationController controller;
+    private ShapeRenderer shapeRenderer;
     
     private Random random;
     private boolean gameOver;
@@ -164,14 +166,12 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
         asteroidInstances = new ArrayList<ModelInstance>();
         asteroidPositions = new ArrayList<Vector3>();
         asteroidFallSpeeds = new FloatArray();
-        /*
-        for(int i = 0; i < asteroidsCount; ++i){
-        	asteroidInstances.add(new ModelInstance(asteroid));
-        	asteroidPositions.add(NewSpawnPosition());
-        	
-        	//asteroidInstances.get(i).transform.translate(i * 60 - 150, 0, -200);
-        	//asteroidPositions.add(new Vector3(i * 60f - 150f, 0f, -200f));
-        }*/
+        
+        ////////////////////////////////////////////////
+        shapeRenderer = new ShapeRenderer();
+        shapeRenderer.setColor(Color.WHITE);
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        Gdx.gl20.glLineWidth(5);
     }
     
     @Override
@@ -185,14 +185,17 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
     }
     
     public void SpawnAsteroid(float x, float y, float fallSpeed){
-    	asteroidInstances.add(new ModelInstance(asteroid));
+    	ModelInstance instance = new ModelInstance(asteroid);
+    	instance.transform.scale(0.05f, 0.05f, 0.05f);
     	
-    	Vector3 pos = new Vector3(	(x - 0.5f) * 400,				// horizontal spread 
-									bodyYPosition + y * 180 + 120, // vertical spread
-									-200f );
+    	asteroidInstances.add(instance);
+    	
+    	Vector3 pos = new Vector3(	(x - 0.5f) * 30,				// horizontal spread 400
+									bodyYPosition + y * 10 + 10, // vertical spread	180	120
+									-5.5f); // -200
     	
     	asteroidPositions.add(pos);
-    	asteroidFallSpeeds.add(fallSpeed);
+    	asteroidFallSpeeds.add(10f);//fallSpeed
     	++asteroidsCount;
     }
     
@@ -251,22 +254,25 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
     
     private void CheckCollisions(){
     	Vector3 ourPosition = new Vector3(bodyXPosition, bodyYPosition, bodyZPosition);
-		ourPosition = camera.project(ourPosition);
 		
     	for(int i = 0; i < asteroidsCount; ++i){
     		Vector3 position = asteroidPositions.get(i).cpy();
-    		position = camera.project(position);
     		
     		float distance = ourPosition.dst2(position);
     		
-    		if(distance < 600f && ! gameOver){
+    		if(distance < 2.5f && ! gameOver){
     			gameOver = true;
     			
+    			ourPosition = camera.project(ourPosition);
     			ParticleEffect effect = explosionEffectPool.obtain();
             	effect.setPosition(ourPosition.x, ourPosition.y);
             	explosionsEffects.add(effect);
     		}
     	}
+    }
+    
+    public boolean IsGameOver(){
+    	return gameOver;
     }
 
     @Override
@@ -317,12 +323,19 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
     @Override
     public boolean keyDown(int keycode) {
         if(keycode == Keys.A)
-        	MoveLeftArm(-3f);
-        if(keycode == Keys.D)
         	SpawnAsteroid(random.nextFloat(), random.nextFloat(), 50f);
         
+        if(keycode == Keys.R)
+        	gameOver = false;
+        
+        if(keycode == Keys.DOWN)
+        	camera.translate(0, 0, 2);
+
+        if(keycode == Keys.UP)
+        	camera.translate(0, 0, -2);
+        
         /*
-        if(keycode == Keys.C){        	
+        if(keycode == Keys.E){        	
         	ParticleEffect effect = explosionEffectPool.obtain();
         	
         	Vector3 pos = asteroidPositions.get(random.nextInt(AsteroidsCount));
@@ -383,9 +396,9 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
 		if(screenY > Gdx.graphics.getHeight() / 2){
 			MoveBody(deltaX);
 		}else if(screenX > Gdx.graphics.getWidth() / 2){
-			MoveLeftArm(deltaX * 2.5f);
+			gameOver = false;
 		}else{
-			MoveRightArm(deltaX * 2.5f);
+			SpawnAsteroid(random.nextFloat(), random.nextFloat(), 50f);
 		}
 		
         return;
