@@ -1,45 +1,41 @@
-Untitled
+firebeam
 - Delay -
 active: false
-- Duration -
+- Duration - 
 lowMin: 1000.0
 lowMax: 1000.0
-- Count -
-min: 5
-max: 200
-- Emission -
+- Count - 
+min: 20
+max: 30
+- Emission - 
 lowMin: 0.0
 lowMax: 0.0
-highMin: 250.0
-highMax: 250.0
+highMin: 450.0
+highMax: 450.0
 relative: false
 scalingCount: 1
-scaling0: 0.627451
+scaling0: 1.0
 timelineCount: 1
 timeline0: 0.0
-- Life -
-lowMin: 600.0
-lowMax: 600.0
-highMin: 1200.0
-highMax: 1800.0
+- Life - 
+lowMin: 0.0
+lowMax: 0.0
+highMin: 400.0
+highMax: 400.0
 relative: false
-scalingCount: 3
+scalingCount: 1
 scaling0: 1.0
-scaling1: 0.39215687
-scaling2: 0.3
-timelineCount: 3
+timelineCount: 1
 timeline0: 0.0
-timeline1: 0.53424656
-timeline2: 1.0
-- Life Offset -
+- Life Offset - 
 active: false
-- X Offset -
+- X Offset - 
 active: false
-- Y Offset -
+- Y Offset - 
 active: false
-- Spawn Shape -
+- Spawn Shape - 
 shape: point
-- Spawn Width -
+- Spawn Width - 
 lowMin: 0.0
 lowMax: 0.0
 highMin: 0.0
@@ -49,82 +45,78 @@ scalingCount: 1
 scaling0: 1.0
 timelineCount: 1
 timeline0: 0.0
-- Spawn Height -
+- Spawn Height - 
 lowMin: 0.0
 lowMax: 0.0
-highMin: 0.0
-highMax: 0.0
-relative: false
-scalingCount: 1
-scaling0: 1.0
-timelineCount: 1
-timeline0: 0.0
-- Scale -
-lowMin: 0.0
-lowMax: 0.0
-highMin: 32.0
-highMax: 32.0
-relative: false
-scalingCount: 1
-scaling0: 1.0
-timelineCount: 1
-timeline0: 0.0
-- Velocity -
-active: true
-lowMin: 56.0
-lowMax: 56.0
-highMin: 50.0
+highMin: 100.0
 highMax: 100.0
 relative: false
 scalingCount: 1
 scaling0: 1.0
 timelineCount: 1
 timeline0: 0.0
-- Angle -
+- Scale - 
+lowMin: 10.0
+lowMax: 10.0
+highMin: 10.0
+highMax: 40.0
+relative: true
+scalingCount: 2
+scaling0: 0.75510204
+scaling1: 1.0
+timelineCount: 2
+timeline0: 0.0
+timeline1: 0.15068494
+- Velocity - 
 active: true
 lowMin: 0.0
-lowMax: 360.0
+lowMax: 0.0
 highMin: 0.0
-highMax: 360.0
+highMax: 0.0
 relative: false
-scalingCount: 3
+scalingCount: 1
 scaling0: 1.0
-scaling1: 0.0
-scaling2: 0.0
-timelineCount: 3
+timelineCount: 1
 timeline0: 0.0
-timeline1: 0.5
-timeline2: 1.0
-- Rotation -
+- Angle - 
+active: true
+lowMin: 20.0
+lowMax: 20.0
+highMin: 93.0
+highMax: 87.0
+relative: false
+scalingCount: 1
+scaling0: 1.0
+timelineCount: 1
+timeline0: 0.0
+- Rotation - 
 active: false
-- Wind -
+- Wind - 
 active: false
-- Gravity -
+- Gravity - 
 active: false
-- Tint -
+- Tint - 
 colorsCount: 3
 colors0: 1.0
 colors1: 0.2627451
 colors2: 0.047058824
 timelineCount: 1
 timeline0: 0.0
-- Transparency -
+- Transparency - 
 lowMin: 0.0
 lowMax: 0.0
 highMin: 1.0
 highMax: 1.0
 relative: false
-scalingCount: 4
+scalingCount: 3
 scaling0: 0.0
 scaling1: 1.0
-scaling2: 0.75
-scaling3: 0.0
-timelineCount: 4
+scaling2: 0.71929824
+timelineCount: 3
 timeline0: 0.0
 timeline1: 0.2
-timeline2: 0.8
-timeline3: 1.0
-- Options -
+timeline2: 1.0
+- Options - 
 attached: false
 continuous: false
 aligned: false
