@@ -88,6 +88,8 @@ public class ConnectionHandler implements GoogleApiClient.ConnectionCallbacks,
 
   private ChangeListener listener;
 
+  boolean inGame = false;
+
   public static final ConnectionHandler instance = new ConnectionHandler();
 
   public static interface ChangeListener {
@@ -112,6 +114,8 @@ public class ConnectionHandler implements GoogleApiClient.ConnectionCallbacks,
     void updateRoom(Room room);
 
     void onInvitationRemoved(String invitationId);
+
+    void connected();
   }
 
   public ConnectionHandler() {
@@ -177,7 +181,10 @@ public class ConnectionHandler implements GoogleApiClient.ConnectionCallbacks,
   @Override
   public void onConnected(Bundle connectionHint) {
     Log.d(TAG, "onConnected() called. Sign in successful!");
-
+    if (inGame) {
+      listener.connected();
+      return;
+    }
     Log.d(TAG, "Sign-in succeeded.");
 
     // register listener so we are notified if we receive an invitation to
@@ -512,6 +519,12 @@ public class ConnectionHandler implements GoogleApiClient.ConnectionCallbacks,
   }
 
   public void connect() {
+
+    mGoogleApiClient.connect();
+  }
+
+  public void connectWithListener(GoogleApiClient.ConnectionCallbacks listener) {
+    mGoogleApiClient.registerConnectionCallbacks(listener);
     mGoogleApiClient.connect();
   }
 

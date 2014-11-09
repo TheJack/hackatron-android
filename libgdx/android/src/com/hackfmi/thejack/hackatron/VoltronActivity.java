@@ -39,6 +39,7 @@ public class VoltronActivity extends AndroidApplication implements ChangeListene
     super.onCreate(savedInstanceState);
     connectionHandler = ConnectionHandler.registerContext(this);
     connectionHandler.registerListener(this);
+    connectionHandler.connect();
 
     mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
     mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
@@ -228,7 +229,7 @@ public class VoltronActivity extends AndroidApplication implements ChangeListene
   }
 
   private byte[] generateWorld() {
-    ByteBuffer ba = ByteBuffer.allocate(4 * 4 * SIZE);
+    ByteBuffer ba = ByteBuffer.allocate(4 * 4 * 4 * SIZE);
     ba.put(ConnectionHandler.MSG_WORLD_CODE);
     for (int i = 0; i < SIZE; i++) {
       int t = rand.nextInt();
@@ -241,5 +242,11 @@ public class VoltronActivity extends AndroidApplication implements ChangeListene
       ba.putFloat(speed);
     }
     return ba.array();
+  }
+
+  @Override
+  public void connected() {
+    // TODO Auto-generated method stub
+    startGame();
   }
 }

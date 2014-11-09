@@ -395,8 +395,10 @@ public class AndroidLauncher extends Activity implements View.OnClickListener,
     mMultiplayer = multiplayer;
     updateScoreDisplay();
     connectionHandler.broadcastScore(false);
-    switchToScreen(R.id.screen_game);
-
+    // switchToScreen(R.id.screen_game);
+    connectionHandler.inGame = true;
+    Intent i = new Intent(this, VoltronActivity.class);
+    startActivity(i);
     findViewById(R.id.button_head).setVisibility(View.VISIBLE);
     findViewById(R.id.button_left_hand).setVisibility(View.VISIBLE);
     findViewById(R.id.button_right_hand).setVisibility(View.VISIBLE);
@@ -635,5 +637,11 @@ public class AndroidLauncher extends Activity implements View.OnClickListener,
   @Override
   public void switchToSignInScreen() {
     switchToScreen(R.id.screen_sign_in);
+  }
+
+  @Override
+  public void connected() {
+    // TODO Auto-generated method stub
+
   }
 }
