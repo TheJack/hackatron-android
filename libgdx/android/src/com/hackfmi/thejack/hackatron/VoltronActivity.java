@@ -1,11 +1,15 @@
 package com.hackfmi.thejack.hackatron;
 
+import java.nio.ByteBuffer;
+import java.util.Random;
+
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.Handler;
 
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
@@ -14,6 +18,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.games.multiplayer.Invitation;
 import com.google.android.gms.games.multiplayer.realtime.Room;
 import com.hackfmi.thejack.hackatron.ConnectionHandler.ChangeListener;
+import com.hackfmi.thejack.hackatron.Game.BodyPart;
 import com.mygdx.game.MyGdxGame;
 
 public class VoltronActivity extends AndroidApplication implements ChangeListener,
@@ -22,6 +27,12 @@ public class VoltronActivity extends AndroidApplication implements ChangeListene
   private SensorManager mSensorManager;
   private Sensor mSensor;
   private MyGdxGame voltron;
+
+  private Random rand;
+  private final static int SIZE = 1000;
+
+  private BodyPart role;
+  private byte[] world;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +46,9 @@ public class VoltronActivity extends AndroidApplication implements ChangeListene
     AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
     voltron = new MyGdxGame();
     initialize(voltron, config);
+
+    rand = new Random();
+    role = BodyPart.HEAD;
   }
 
   @Override
@@ -171,5 +185,61 @@ public class VoltronActivity extends AndroidApplication implements ChangeListene
     // current rotation
     // in order to get the updated rotation.
     // rotationCurrent = rotationCurrent * deltaRotationMatrix;
+  }
+
+  void startGame() {
+    if (role == BodyPart.HEAD) {
+      world = generateWorld();
+      broadcastWorld();
+    }
+    broadcastStart();
+    runGame();
+  }
+
+  int ticks;
+
+  private void runGame() {
+    final Handler h = new Handler();
+    ticks = SIZE;
+    h.postDelayed(new Runnable() {
+      @Override
+      public void run() {
+        if (ticks <= 0) {
+          return;
+        }
+        ticks--;
+        byte buff[] = new byte[1];
+        buff[0] = ConnectionHandler.MSG_MOVE_CODE;
+
+        connectionHandler.broadcastUpdate(buff);
+        h.postDelayed(this, 100);
+      }
+    }, 100);
+  }
+
+  private void broadcastStart() {
+    // TODO Auto-generated method stub
+    connectionHandler.broadcastStart();
+  }
+
+  private void broadcastWorld() {
+    // TODO Auto-generated method stub
+    connectionHandler.broadcastWorld(world);
+  }
+
+  private byte[] generateWorld() {
+    ByteBuffer ba = ByteBuffer.allocate(4 * 4 * SIZE);
+    ba.put(ConnectionHandler.MSG_WORLD_CODE);
+    for (int i = 0; i < SIZE; i++) {
+      int t = rand.nextInt();
+      float x = rand.nextFloat();
+      float y = rand.nextFloat();
+      float speed = 100 * rand.nextFloat();
+      ba.putInt(t);
+      ba.putFloat(x);
+      ba.putFloat(y);
+      ba.putFloat(speed);
+    }
+    return ba.array();
   }
 }

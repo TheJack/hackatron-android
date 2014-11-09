@@ -75,6 +75,12 @@ public class ConnectionHandler implements GoogleApiClient.ConnectionCallbacks,
   // Request code used to invoke sign in user interactions.
   private static final int RC_SIGN_IN = 9001;
 
+  // Messages
+  public final static byte MSG_WORLD_CODE = 0;
+  public final static byte MSG_START_CODE = 1;
+  public final static byte MSG_MOVE_CODE = 2;
+  public final static byte MSG_END_CODE = 3;
+
   // Game
   private Game currentGame;
 
@@ -434,29 +440,18 @@ public class ConnectionHandler implements GoogleApiClient.ConnectionCallbacks,
     String sender = rtm.getSenderParticipantId();
     Log.d(TAG, "Message received: " + (char) buf[0] + "/" + (int) buf[1]);
 
-    if (buf[0] == 'F' || buf[0] == 'U') {
-      // score update.
-      int existingScore = mParticipantScore.containsKey(sender) ? mParticipantScore.get(sender) : 0;
-      int thisScore = buf[1];
-      if (thisScore > existingScore) {
-        // this check is necessary because packets may arrive out of
-        // order, so we
-        // should only ever consider the highest score we received, as
-        // we know in our
-        // game there is no way to lose points. If there was a way to
-        // lose points,
-        // we'd have to add a "serial number" to the packet.
-        mParticipantScore.put(sender, thisScore);
-      }
-
-      // update the scores on the screen
-      notifyPeerScoresDisplay();
-
-      // if it's a final score, mark this participant as having finished
-      // the game
-      if ((char) buf[0] == 'F') {
-        mFinishedParticipants.add(rtm.getSenderParticipantId());
-      }
+    if (buf[0] == MSG_START_CODE) {
+      System.out.println("start game");
+      // startGame();
+    } else if (buf[0] == MSG_WORLD_CODE) {
+      System.out.println("world");
+      // newWorld(buf);
+    } else if (buf[0] == MSG_MOVE_CODE) {
+      System.out.println("move");
+      // move(buf);
+    } else {
+      System.out.println("end game");
+      // endGame(buf);
     }
   }
 
@@ -552,5 +547,57 @@ public class ConnectionHandler implements GoogleApiClient.ConnectionCallbacks,
   public void disconnect() {
     Games.signOut(mGoogleApiClient);
     mGoogleApiClient.disconnect();
+  }
+
+  public void broadcastWorld(byte[] world) {
+    // TODO Auto-generated method stub
+    // Send to every other participant.
+    for (Participant p : mParticipants) {
+      if (p.getParticipantId().equals(mMyId)) {
+        continue;
+      }
+      if (p.getStatus() != Participant.STATUS_JOINED) {
+        continue;
+      }
+      // final score notification must be sent via reliable message
+      Games.RealTimeMultiplayer.sendReliableMessage(mGoogleApiClient, null, world, mRoomId,
+          p.getParticipantId());
+    }
+  }
+
+  public void broadcastStart() {
+    if (!mMultiplayer) {
+      return; // playing single-player mode
+    }
+
+    // First byte in message indicates whether it's a final score or not
+    mMsgBuf[0] = MSG_START_CODE;
+
+    // Send to every other participant.
+    for (Participant p : mParticipants) {
+      if (p.getParticipantId().equals(mMyId)) {
+        continue;
+      }
+      if (p.getStatus() != Participant.STATUS_JOINED) {
+        continue;
+      }
+      Games.RealTimeMultiplayer.sendReliableMessage(mGoogleApiClient, null, mMsgBuf, mRoomId,
+          p.getParticipantId());
+    }
+  }
+
+  public void broadcastUpdate(byte[] buff) {
+    // Send to every other participant.
+    for (Participant p : mParticipants) {
+      if (p.getParticipantId().equals(mMyId)) {
+        continue;
+      }
+      if (p.getStatus() != Participant.STATUS_JOINED) {
+        continue;
+      }
+      Games.RealTimeMultiplayer.sendReliableMessage(mGoogleApiClient, null, buff, mRoomId,
+          p.getParticipantId());
+    }
+
   }
 }
