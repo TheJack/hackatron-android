@@ -17,6 +17,8 @@ import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g2d.ParticleEffect;
+import com.badlogic.gdx.graphics.g2d.ParticleEffectPool;
+import com.badlogic.gdx.graphics.g2d.ParticleEffectPool.PooledEffect;
 import com.badlogic.gdx.graphics.g2d.ParticleEmitter;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.Environment;
@@ -30,7 +32,9 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
 import com.badlogic.gdx.graphics.g3d.loader.ObjLoader;
 import com.badlogic.gdx.graphics.g3d.particles.emitters.Emitter;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.BooleanArray;
+import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.UBJsonReader;
 import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
 import com.badlogic.gdx.graphics.g3d.utils.AnimationController.AnimationDesc;
@@ -56,16 +60,19 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
     private Model backDrop;
     private ModelInstance backDropInstance;
     
-    final static int AsteroidsCount = 6;
+    
     final static float AsteroidFallSpeed = 40f;
     private Model asteroid;
+    private int asteroidsCount = 0;
     private ArrayList<ModelInstance> asteroidInstances;
     private ArrayList<Vector3> 		 asteroidPositions;
+    private FloatArray 		 		 asteroidFallSpeeds;
     
     private Environment environment;
     //private AnimationController controller;
     
     private Random random;
+    private boolean gameOver;
     
     private float bodyXPosition;
     private float bodyYPosition;
@@ -79,11 +86,13 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
     final static float ArmsStartRotation = 135;
     
     private SpriteBatch batch;
-	private final int ExplosionsPoolSize = 5;
-	private LinkedList<ParticleEffect> explosionsPool;
+	private final int ExplosionsPoolSize = 50;
+	private Array<ParticleEffect> explosionsEffects;
+	private ParticleEffectPool explosionEffectPool;
     
     @Override
     public void create() {
+    	gameOver = false;
     	bodyXPosition = 0f;
     	bodyYPosition = -4.2f;
     	bodyZPosition = -4.8f;
@@ -111,26 +120,18 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
         
         ////////////////////////////////////////////////
         batch = new SpriteBatch();
-		/*effect = new ParticleEffect();
-		effect.load(Gdx.files.internal("explosion.p"), Gdx.files.internal("img")); // firebeam yellow-drop.png
-		effect.setPosition(Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
-		*/
-        explosionsPool = new LinkedList<ParticleEffect>();
-		for(int i = 0; i < ExplosionsPoolSize; ++i){
-			explosionsPool.addFirst(new ParticleEffect());
-			explosionsPool.getFirst().load(Gdx.files.internal("explosion.p"), Gdx.files.internal("img"));
-		}
-		//effect.start();
-		/*
-		ParticleEmitter emitter = effect.getEmitters().first();
-		emitter.getScale().setHigh(5, 20);
-		emitter.getAngle().
-       */
+
+        explosionsEffects = new Array<ParticleEffect>();
+        ParticleEffect explosionEffect = new ParticleEffect();
+        explosionEffect.load(Gdx.files.internal("explosion.p"), Gdx.files.internal("img"));
+        explosionEffect.start();
+        
+        explosionEffectPool = new ParticleEffectPool(explosionEffect, 1, ExplosionsPoolSize);
+
         ////////////////////////////////////////////////
-        ModelBuilder modelBuilder = new ModelBuilder();
+		ModelBuilder modelBuilder = new ModelBuilder();
         modelBatch = new ModelBatch();
         
-        ////////////////////////////////////////////////
         Texture texTile = new Texture(Gdx.files.getFileHandle("background.jpg", FileType.Internal));
         backDrop = modelBuilder.createBox(	1300f, 800f, 1f, 
         									new Material(TextureAttribute.createDiffuse(texTile)),
@@ -162,14 +163,15 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
         
         asteroidInstances = new ArrayList<ModelInstance>();
         asteroidPositions = new ArrayList<Vector3>();
-        
-        for(int i = 0; i < AsteroidsCount; ++i){
+        asteroidFallSpeeds = new FloatArray();
+        /*
+        for(int i = 0; i < asteroidsCount; ++i){
         	asteroidInstances.add(new ModelInstance(asteroid));
         	asteroidPositions.add(NewSpawnPosition());
         	
         	//asteroidInstances.get(i).transform.translate(i * 60 - 150, 0, -200);
         	//asteroidPositions.add(new Vector3(i * 60f - 150f, 0f, -200f));
-        }
+        }*/
     }
     
     @Override
@@ -182,19 +184,28 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
         rightArm.dispose();
     }
     
-    private Vector3 NewSpawnPosition(){
-    	return new Vector3(	(random.nextFloat() - 0.5f) * 400,				// horizontal spread 
-    						bodyYPosition + random.nextFloat() * 280 + 120, // vertical spread
-    						-200f );
+    public void SpawnAsteroid(float x, float y, float fallSpeed){
+    	asteroidInstances.add(new ModelInstance(asteroid));
+    	
+    	Vector3 pos = new Vector3(	(x - 0.5f) * 400,				// horizontal spread 
+									bodyYPosition + y * 180 + 120, // vertical spread
+									-200f );
+    	
+    	asteroidPositions.add(pos);
+    	asteroidFallSpeeds.add(fallSpeed);
+    	++asteroidsCount;
     }
     
     private void UpdateAsteroids(float dt){
-    	for(int i = 0; i < AsteroidsCount; ++i){
-    		asteroidPositions.get(i).y  -= AsteroidFallSpeed * dt;
+    	for(int i = 0; i < asteroidsCount; ++i){
+    		asteroidPositions.get(i).y  -= dt * asteroidFallSpeeds.get(i);
         	asteroidInstances.get(i).transform.setTranslation(asteroidPositions.get(i));
         	
         	if(asteroidPositions.get(i).y < bodyYPosition - 180){
-        		asteroidPositions.set(i, NewSpawnPosition());
+        		asteroidInstances.remove(i);
+        		asteroidPositions.remove(i);
+        		asteroidFallSpeeds.removeIndex(i);
+        		--asteroidsCount;
         	}
         }
     }
@@ -202,7 +213,7 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
     @Override
     public void render() {
     	float dt = Gdx.graphics.getDeltaTime();
-    	
+
         Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         Gdx.gl.glClearColor(1, 1, 1, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
@@ -213,26 +224,49 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
         modelBatch.begin(camera);
         modelBatch.render(backDropInstance, environment);
         
-        for(int i = 0; i < AsteroidsCount; ++i){
+        for(int i = 0; i < asteroidsCount; ++i){
         	asteroidInstances.get(i).transform.rotate(random.nextFloat(), random.nextFloat(), random.nextFloat(), 1);
         	modelBatch.render(asteroidInstances.get(i), environment);
         }
         
-        modelBatch.render(voltronInstance, environment);
-        modelBatch.render(leftArmInstance, environment);
-        modelBatch.render(rightArmInstance, environment);
+        if( ! gameOver ){
+        	modelBatch.render(voltronInstance, environment);
+            modelBatch.render(leftArmInstance, environment);
+            modelBatch.render(rightArmInstance, environment);
+        }
         modelBatch.end();
-        /*
+        
     	batch.begin();
-    	for(ParticleEffect effect : explosionsPool){
-    		if(!effect.isComplete()){
-    			
-    		}
-    		effect.draw(batch, dt);
-    		effect.update(dt);
-    	}
+    	for(ParticleEffect effect : explosionsEffects) {
+			effect.draw(batch, dt);
+			if(effect.isComplete()) {
+				explosionsEffects.removeValue(effect, true);
+				explosionEffectPool.free((PooledEffect)effect);
+			}
+		}
+    	batch.end();
     	
-    	batch.end();*/
+    	CheckCollisions();
+    }
+    
+    private void CheckCollisions(){
+    	Vector3 ourPosition = new Vector3(bodyXPosition, bodyYPosition, bodyZPosition);
+		ourPosition = camera.project(ourPosition);
+		
+    	for(int i = 0; i < asteroidsCount; ++i){
+    		Vector3 position = asteroidPositions.get(i).cpy();
+    		position = camera.project(position);
+    		
+    		float distance = ourPosition.dst2(position);
+    		
+    		if(distance < 600f && ! gameOver){
+    			gameOver = true;
+    			
+    			ParticleEffect effect = explosionEffectPool.obtain();
+            	effect.setPosition(ourPosition.x, ourPosition.y);
+            	explosionsEffects.add(effect);
+    		}
+    	}
     }
 
     @Override
@@ -282,38 +316,22 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
 
     @Override
     public boolean keyDown(int keycode) {
-        float moveAmount = 1.0f;
-        
-        if(keycode == Keys.UP)
-        	voltronInstance.transform.translate(0, -moveAmount, -2);
-        if(keycode == Keys.DOWN)
-        	voltronInstance.transform.translate(0, moveAmount, -2);
-        
-        if(keycode == Keys.LEFT)
-        	voltronInstance.transform.translate(0, 0, -moveAmount);
-        if(keycode == Keys.RIGHT)
-        	voltronInstance.transform.translate(0, 0, moveAmount);
-        
         if(keycode == Keys.A)
         	MoveLeftArm(-3f);
         if(keycode == Keys.D)
-        	MoveLeftArm(3f);
+        	SpawnAsteroid(random.nextFloat(), random.nextFloat(), 50f);
         
-        if(keycode == Keys.C){
-        	ParticleEffect first = explosionsPool.getFirst();
-    		
-    		first.reset();
-    		
-    		Vector3 pos = asteroidPositions.get(random.nextInt(AsteroidsCount));
+        /*
+        if(keycode == Keys.C){        	
+        	ParticleEffect effect = explosionEffectPool.obtain();
+        	
+        	Vector3 pos = asteroidPositions.get(random.nextInt(AsteroidsCount));
     		pos = camera.project(pos);
-    		first.setPosition(pos.x, pos.y);
-    		
-    		first.start();
-    		
-    		explosionsPool.addLast(first);
-    		explosionsPool.removeFirst();
+        	effect.setPosition(pos.x, pos.y);
+        	
+        	explosionsEffects.add(effect);
         }
-        
+        */
         return true;
     }
 
@@ -343,15 +361,14 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
 
 	int oldX;
 	int oldY;
-	@Override
-	public boolean touchDragged(int screenX, int screenY, int pointer) {
+	public void OnTouchDrag(int screenX, int screenY, int pointer) {
 		if(pointer > 0)
-			return true;
+			return;
 		
 		if( oldX < 0){
 			oldX = screenX;
 			oldY = screenY;
-			return true;
+			return;
 		}
 		
 		float deltaX = (screenX - oldX) / 65.0f;
@@ -361,7 +378,7 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
 		oldY = screenY;
 		
 		if(deltaX > 20 || deltaY > 20)
-			return true;
+			return;
 		
 		if(screenY > Gdx.graphics.getHeight() / 2){
 			MoveBody(deltaX);
@@ -371,6 +388,11 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
 			MoveRightArm(deltaX * 2.5f);
 		}
 		
+        return;
+	}
+	@Override
+	public boolean touchDragged(int screenX, int screenY, int pointer) {
+		OnTouchDrag(screenX, screenY, pointer);
         return true;
 	}
 
