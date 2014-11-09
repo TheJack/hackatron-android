@@ -8,11 +8,8 @@ import java.util.Map;
 import java.util.Set;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -34,7 +31,7 @@ import com.google.example.games.basegameutils.BaseGameUtils;
 import com.hackfmi.thejack.hackatron.Game.BodyPart;
 
 public class AndroidLauncher extends Activity implements View.OnClickListener,
-    ConnectionHandler.ChangeListener, SensorEventListener {
+    ConnectionHandler.ChangeListener {
   final static String TAG = "ButtonClicker2000";
 
   // Request codes for the UIs that we show with startActivityForResult:
@@ -58,9 +55,6 @@ public class AndroidLauncher extends Activity implements View.OnClickListener,
   // invitation listener
   String mIncomingInvitationId = null;
 
-  // Message buffer for sending messages
-  byte[] mMsgBuf = new byte[2];
-
   // Game
   private Game currentGame;
 
@@ -76,15 +70,13 @@ public class AndroidLauncher extends Activity implements View.OnClickListener,
     super.onCreate(savedInstanceState);
     setContentView(R.layout.android_launcher);
 
-    connectionHandler = new ConnectionHandler(this);
+    connectionHandler = ConnectionHandler.registerContext(this);
     connectionHandler.registerListener(this);
     // set up a click listener for everything we care about
     for (int id : CLICKABLES) {
       findViewById(id).setOnClickListener(this);
     }
 
-    mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-    mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
     mParticipants = new ArrayList<Participant>();
   }
 
@@ -100,8 +92,11 @@ public class AndroidLauncher extends Activity implements View.OnClickListener,
     case R.id.button_single_player:
     case R.id.button_single_player_2:
       // play a single-player game
+      Intent i = new Intent(this, VoltronActivity.class);
+      startActivity(i);
       resetGameVars();
       startGame(false);
+
       break;
     case R.id.button_sign_in:
       // start the sign-in flow
@@ -600,28 +595,6 @@ public class AndroidLauncher extends Activity implements View.OnClickListener,
   }
 
   @Override
-  protected void onResume() {
-    super.onResume();
-    mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_GAME);
-  }
-
-  @Override
-  protected void onPause() {
-    super.onPause();
-    mSensorManager.unregisterListener(this);
-  }
-
-  @Override
-  public void onKeepScreenOn() {
-    keepScreenOn();
-  }
-
-  @Override
-  public void onStopKeepingScreenOn() {
-    stopKeepingScreenOn();
-  }
-
-  @Override
   public void onInvitation(Invitation invitation) {
     ((TextView) findViewById(R.id.incoming_invitation_text)).setText(invitation.getInviter()
         .getDisplayName() + " " + getString(R.string.is_inviting_you));
@@ -663,25 +636,4 @@ public class AndroidLauncher extends Activity implements View.OnClickListener,
   public void switchToSignInScreen() {
     switchToScreen(R.id.screen_sign_in);
   }
-
-  @Override
-  public void onAccuracyChanged(Sensor arg0, int arg1) {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
-  public void onSensorChanged(SensorEvent arg0) {
-    // TODO Auto-generated method stub
-
-  }
 }
-
-// @Override
-// protected void onCreate(Bundle savedInstanceState) {
-// super.onCreate(savedInstanceState);
-// AndroidApplicationConfiguration config = new
-// AndroidApplicationConfiguration();
-// initialize(new MyGdxGame(), config);
-// }
-// }

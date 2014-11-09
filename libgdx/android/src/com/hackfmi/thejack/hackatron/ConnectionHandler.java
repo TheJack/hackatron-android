@@ -39,7 +39,7 @@ public class ConnectionHandler implements GoogleApiClient.ConnectionCallbacks,
   final static String TAG = "ButtonClicker2000";
 
   // Client used to interact with Google APIs.
-  private final GoogleApiClient mGoogleApiClient;
+  private GoogleApiClient mGoogleApiClient;
 
   // Are we currently resolving a connection failure?
   boolean mResolvingConnectionFailure = false;
@@ -78,15 +78,13 @@ public class ConnectionHandler implements GoogleApiClient.ConnectionCallbacks,
   // Game
   private Game currentGame;
 
-  private final Context context;
+  private Context context;
 
   private ChangeListener listener;
 
+  public static final ConnectionHandler instance = new ConnectionHandler();
+
   public static interface ChangeListener {
-    void onKeepScreenOn();
-
-    void onStopKeepingScreenOn();
-
     void onInvitation(Invitation invitation);
 
     void onInvitationRemoved();
@@ -110,14 +108,21 @@ public class ConnectionHandler implements GoogleApiClient.ConnectionCallbacks,
     void onInvitationRemoved(String invitationId);
   }
 
-  public ConnectionHandler(Context context) {
+  public ConnectionHandler() {
+    mParticipants = new ArrayList<Participant>();
+  }
+
+  void registerNewContext(Context context) {
     this.context = context;
     // Create the Google Api Client with access to Plus and Games
     mGoogleApiClient = new GoogleApiClient.Builder(context).addConnectionCallbacks(this)
         .addOnConnectionFailedListener(this).addApi(Plus.API).addScope(Plus.SCOPE_PLUS_LOGIN)
         .addApi(Games.API).addScope(Games.SCOPE_GAMES).build();
+  }
 
-    mParticipants = new ArrayList<Participant>();
+  public static ConnectionHandler registerContext(Context context) {
+    instance.registerNewContext(context);
+    return instance;
   }
 
   public void startQuickGame() {
