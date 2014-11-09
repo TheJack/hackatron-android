@@ -16,6 +16,8 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.BitmapFont.HAlignment;
 import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.ParticleEffectPool;
 import com.badlogic.gdx.graphics.g2d.ParticleEffectPool.PooledEffect;
@@ -91,6 +93,8 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
 	private final int ExplosionsPoolSize = 50;
 	private Array<ParticleEffect> explosionsEffects;
 	private ParticleEffectPool explosionEffectPool;
+	
+	BitmapFont font;
     
     @Override
     public void create() {
@@ -103,7 +107,10 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
     	
     	random = new Random();
     	Gdx.input.setInputProcessor(this);
-    	 
+    	
+    	font = new BitmapFont();
+    	font.scale(1.0f);
+    	
         camera = new PerspectiveCamera( 75,
 						                Gdx.graphics.getWidth(),
 						                Gdx.graphics.getHeight());
@@ -195,7 +202,7 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
 									-5.5f); // -200
     	
     	asteroidPositions.add(pos);
-    	asteroidFallSpeeds.add(10f);//fallSpeed
+    	asteroidFallSpeeds.add(fallSpeed);
     	++asteroidsCount;
     }
     
@@ -228,7 +235,7 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
         modelBatch.render(backDropInstance, environment);
         
         for(int i = 0; i < asteroidsCount; ++i){
-        	asteroidInstances.get(i).transform.rotate(random.nextFloat(), random.nextFloat(), random.nextFloat(), 1);
+        	asteroidInstances.get(i).transform.rotate(random.nextFloat(), random.nextFloat(), random.nextFloat(), 3);
         	modelBatch.render(asteroidInstances.get(i), environment);
         }
         
@@ -247,10 +254,26 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
 				explosionEffectPool.free((PooledEffect)effect);
 			}
 		}
+    	
+    	if(gameOver){
+        	CharSequence str = "GAME OVER!";
+        	font.drawMultiLine(	batch, str, 
+        						Gdx.graphics.getWidth() / 2, 
+        						Gdx.graphics.getHeight() / 2, 
+        						20, 
+        						HAlignment.CENTER );
+    	}
     	batch.end();
     	
     	CheckCollisions();
+    	
+    	timeSoFar += dt;
+    	if(timeSoFar > 0.3f){
+    		SpawnAsteroid(random.nextFloat(), random.nextFloat(), random.nextFloat() * 8f + 5f);
+    		timeSoFar = 0;
+    	}
     }
+    private float timeSoFar = 0f;
     
     private void CheckCollisions(){
     	Vector3 ourPosition = new Vector3(bodyXPosition, bodyYPosition, bodyZPosition);
@@ -260,7 +283,7 @@ public class MyGdxGame implements ApplicationListener, InputProcessor  {
     		
     		float distance = ourPosition.dst2(position);
     		
-    		if(distance < 2.5f && ! gameOver){
+    		if(distance < 3.5f && ! gameOver){
     			gameOver = true;
     			
     			ourPosition = camera.project(ourPosition);
