@@ -61,3 +61,11 @@ build/
 
 ## OS Specific
 .DS_Store
+
+# libgdx
+build.gradle
+gradlew
+gradlew.bat
+html/build.gradle
+html/src/com/mygdx/game/GdxDefinition.gwt.xml
+html/src/com/mygdx/game/GdxDefinitionSuperdev.gwt.xml
